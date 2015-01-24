@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
-import org.markdown4j.Markdown4jProcessor;
+import org.pegdown.Extensions;
+import org.pegdown.PegDownProcessor;
 
 import com.nflabs.zeppelin.interpreter.Interpreter;
 import com.nflabs.zeppelin.interpreter.InterpreterContext;
@@ -18,10 +19,11 @@ import com.nflabs.zeppelin.scheduler.SchedulerFactory;
  *
  * @author Leemoonsoo
  * @author anthonycorbacho
+ * @author felixcheung
  *
  */
 public class Markdown extends Interpreter {
-  private Markdown4jProcessor md;
+  private PegDownProcessor md;
 
   static {
     Interpreter.register("md", Markdown.class.getName());
@@ -33,7 +35,7 @@ public class Markdown extends Interpreter {
 
   @Override
   public void open() {
-    md = new Markdown4jProcessor();
+    md = new PegDownProcessor(Extensions.ALL);
   }
 
   @Override
@@ -46,11 +48,9 @@ public class Markdown extends Interpreter {
 
   @Override
   public InterpreterResult interpret(String st, InterpreterContext interpreterContext) {
-    String html;
-    try {
-      html = md.process(st);
-    } catch (IOException e) {
-      return new InterpreterResult(Code.ERROR, e.getMessage());
+    String html = md.markdownToHtml(st);
+    if (html == null) {
+      return new InterpreterResult(Code.ERROR, "Error parsing Markdown");
     }
     return new InterpreterResult(Code.SUCCESS, "%html " + html);
   }
