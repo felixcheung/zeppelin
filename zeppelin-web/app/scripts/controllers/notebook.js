@@ -58,6 +58,14 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
     return value;
   };
 
+  var getCodeHighlightStyles = function() {
+    var allStyles = jQuery.makeArray($('link[title]'));
+    return jQuery.map( allStyles, function(style, index) {
+      return style.title;
+    });
+  };
+  $scope.codeHighlightStyles = getCodeHighlightStyles();
+
   /** Init the new controller */
   var initNotebook = function() {
     $rootScope.$emit('sendNewEvent', {op: 'GET_NOTE', data: {id: $routeParams.noteId}});
@@ -65,7 +73,7 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
 
   initNotebook();
 
-  /** Remove the note and go back tot he main page */
+  /** Remove the note and go back to the main page */
   /** TODO(anthony): In the nearly future, go back to the main page and telle to the dude that the note have been remove */
   $scope.removeNote = function(noteId) {
     var result = confirm('Do you want to delete this notebook?');
@@ -135,6 +143,18 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
     $rootScope.$emit('setLookAndFeel', $scope.note.config.looknfeel);
   };
 
+  $scope.changeCodeHighlightStyle = function(style) {
+    if(style) {
+      $scope.note.config.codeHighlightStyle = style;
+      $scope.setConfig();
+      $rootScope.$emit('changeCodeHighlightStyle', $scope.note.config.codeHighlightStyle);
+
+      $('link[title]').each(function(i, link) {
+        link.disabled = (link.title !== style);
+      });
+    }
+  };
+
   /** Set cron expression for this note **/
   $scope.setCronScheduler = function(cronExpr) {
     $scope.note.config.cron = cronExpr;
@@ -174,15 +194,26 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
     }
 
     /** set look n feel */
-    var looknfeel = note.config.looknfeel
+    var looknfeel = note.config.looknfeel;
     $scope.viewOnly = looknfeel == 'report';
     $rootScope.$emit('setLookAndFeel', looknfeel);
+
+    var style = note.config.codeHighlightStyle;
+    $rootScope.$emit('changeCodeHighlightStyle', style);
   });
 
   var initialize = function() {
     if (!$scope.note.config.looknfeel) {
       $scope.note.config.looknfeel = 'default';
     }
+
+    if (!$scope.note.config.codeHighlightStyle) {
+      $scope.note.config.codeHighlightStyle = 'GitHub';
+    }
+
+    $('link[title]').each(function(i, link) {
+      link.disabled = (link.title !== $scope.note.config.codeHighlightStyle);
+    });
 
     // open interpreter binding setting when there're none selected
     getInterpreterBindings(function(){
@@ -397,6 +428,7 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
 
   $scope.openSetting = function() {
     $scope.showSetting = true;
+    $scope.note.config.codeHighlightStyleOrig = $scope.note.config.codeHighlightStyle;
     getInterpreterBindings();
   };
 
@@ -407,6 +439,7 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
         return;
       }
     }
+    $scope.changeCodeHighlightStyle($scope.note.config.codeHighlightStyleOrig);
     $scope.showSetting = false;
   };
 
@@ -439,7 +472,8 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', function($scope, $ro
   };
 
   var isSettingDirty = function() {
-    if (angular.equals($scope.interpreterBindings, $scope.interpreterBindingsOrig)) {
+    if (angular.equals($scope.interpreterBindings, $scope.interpreterBindingsOrig) &&
+        $scope.note.config.codeHighlightStyle === $scope.note.config.codeHighlightStyleOrig) {
       return false;
     } else {
       return true;
